@@ -91,8 +91,7 @@ filename = mfilename('fullpath');
         cRibbon.setEnergy( Energy )
         
         % Calculates the surface Green operator of the scattering region and perform a gauge transformation
-        cRibbon.CalcFiniteGreensFunctionFromHamiltonian( 'gauge_trans', true ,'scatterPotential',@ScatterPot);  
-        
+        cRibbon.CalcFiniteGreensFunctionFromHamiltonian( 'gauge_trans', true ,'scatterPotential',@ScatterPot);      
         
         % Calculates the surface Green operator of the scattering region
         %cRibbon.CalcFiniteGreensFunction(); 
@@ -100,10 +99,11 @@ filename = mfilename('fullpath');
         % creating function handle for the Dyson Eq.       
         %Dysonfunc = @()cRibbon.CustomDysonFunc( 'constant_channels', false, 'SelfEnergy', selfEnergy , 'decimate', false);%, 'keep_sites','lead');
 
-        [G,Ginv,junction_sites]= cRibbon.CustomDysonFunc( 'constant_channels', false, 'SelfEnergy', false , 'decimate', false, 'keep_sites','scatter');
+        [G,Ginv,junction_sites]= cRibbon.CustomDysonFunc( 'constant_channels', false, 'SelfEnergy', false , 'decimate', false,'UseHamiltonian',true);
 
         % Evaluate the Dyson Eq.
         %[G,junction_sites] = cRibbon.FL_handles.DysonEq( 'CustomDyson', Dysonfunc );
+        %[a1,a2] = cRibbon.CalcSpectralFunction ( Energy , 'decimateDyson', false)
         
         cRibbon.CreateScatter();
         %cRibbon.CreateInterface(1);
@@ -118,17 +118,36 @@ filename = mfilename('fullpath');
         %xI = coordinatesI.x;
         %yI = coordinatesI.y;
 
-        figure1 = figure('rend','painters','pos',[10 10 900 400],'visible','on');       
-        %hold on
-        plot(x,y,'.','color','blue','MarkerSize',10)
+        figure1 = figure('rend','painters','pos',[10 10 900 900]);       
+        hold on
+        %plot(x,y,'.','color','blue','MarkerSize',20)
         %plot(xI,yI,'.','color','blue','MarkerSize',10)
 
-        daspect([1 1 1]);
-
-        Ham = Ginv + eye(size(G))*Energy;
+        Ham = Ginv + eye(size(Ginv))*Energy;
 
         [V,D] = eig(Ham);
-
+        
+        Energies = diag(D);
+        
+        zero_energies_logical =  abs(Energies) < 2 ;
+        
+        zero_energies = Energies(zero_energies_logical);
+        
+        nr_zero_energies = sum(zero_energies_logical);
+                
+        zero_waveFsq = V(:,zero_energies_logical).*conj(V(:,zero_energies_logical));
+        
+        for j=1:nr_zero_energies
+            ax=subplot(ceil(sqrt(nr_zero_energies)),ceil(sqrt(nr_zero_energies)),j);
+            scatter(x,y,zero_waveFsq(junction_sites.Scatter.site_indexes,j)*2000,'LineWidth',3,...
+                'MarkerEdgeColor',[0 .5 .5],...
+                'MarkerFaceColor',[0 .5 .5])%'.','color','red','MarkerSize',
+            daspect([1 1 1]);
+            xlim([min(x)-0.5,max(x)+0.5]);
+            ylim([min(y)-0.5,max(y)+0.5]);
+            title(['WaveF at E = ',num2str(zero_energies(j))],'Interpreter','latex','FontSize',18);
+        end
+        
         close(figure1);        
 
         % exporting the calculated data
