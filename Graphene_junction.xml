@@ -6,7 +6,7 @@
 		<BdG value="0" description="Set to 1 in superconducting systems, 0 (default) for normal systems" effect="optional parameter" />
 		<Decimation value="4" description="Option for using Decimation. Type 1,2 or 3 to use it, 0 to not use it"/>
 		<Decimation_block value="301" description="size of maximal block to decimate"/>
-		<Decimate_only_Dyson value="1" description="set 1 for decimate only the Dyson equation, and 0 otherwise."/>
+		<Decimate_only_Dyson value="0" description="set 1 for decimate only the Dyson equation, and 0 otherwise."/>
 		<Decimation_block value="451" description="size of maximal block to decimate" effect="has effect if Decimation=3" />
 		<magnetic_field value="0" description="Type 0 not to use magnetic field, or 1 to use magnetic field" effect="optional parameter"/>
 		<Lattice_Type value="Graphene" description="type 0 for Square lattice or type 1 for Hexagonal lattice, 2 for Silicene" effect="in case of Hscatter=1, Hleads=1 and Hcoupling=1 has no effect "/> 

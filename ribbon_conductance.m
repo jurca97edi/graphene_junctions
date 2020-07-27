@@ -29,7 +29,7 @@
 %
 %> @brief Calculates the minimal conductivity of the graphene sheet as a function of the aspect ratio.
 %> @param filenum The identification number of the filenema for the exported data (default is 1).
-function ribbon_conductance( )
+function ribbon_conductance( keep_sites )
 
 if ~exist('filenum', 'var')
     filenum = 1;
@@ -59,7 +59,7 @@ filename = mfilename('fullpath');
 
     % creating 1D energy array
     % The minimal value of the widths
-    width = 2;
+    width = 3;
     height=2;
 
     % creating 1D energy array (in units of eV)
@@ -83,15 +83,19 @@ filename = mfilename('fullpath');
     function CalculateTransport()
         
         % determine the current energy value
-        Energy = 1e-3; 
+        Energy = 1e-4; 
 
         %> creating the Ribbon class representing the twoterminal setup
-        cRibbon = Ribbon('Opt', Opt, 'param', param, 'width', width, 'height', height);
+        cRibbon = Ribbon('Opt', Opt, 'param', param, 'width', width, 'height', height );%,'leadmodel', @CustomLead);
 
         cRibbon.setEnergy( Energy )
         
         % Calculates the surface Green operator of the scattering region and perform a gauge transformation
-        cRibbon.CalcFiniteGreensFunctionFromHamiltonian( 'gauge_trans', true ,'scatterPotential',@ScatterPot);      
+        if keep_sites
+            cRibbon.CalcFiniteGreensFunctionFromHamiltonian( 'gauge_trans', true ,'scatterPotential',@ScatterPot);      
+        else
+            cRibbon.CalcFiniteGreensFunctionFromHamiltonian( 'gauge_trans', true ,'scatterPotential',@ScatterPot);      
+        end
         
         % Calculates the surface Green operator of the scattering region
         %cRibbon.CalcFiniteGreensFunction(); 
@@ -106,23 +110,14 @@ filename = mfilename('fullpath');
         %[a1,a2] = cRibbon.CalcSpectralFunction ( Energy , 'decimateDyson', false)
         
         cRibbon.CreateScatter();
-        %cRibbon.CreateInterface(1);
         CreateH = cRibbon.CreateH;
-        %Interface_Regions = cRibbon.Interface_Regions(1);
 
         coordinates = CreateH.Read('coordinates');
         x = coordinates.x;
         y = coordinates.y;
 
-        %coordinatesI = Interface_Regions.Read('coordinates2');
-        %xI = coordinatesI.x;
-        %yI = coordinatesI.y;
-
-        figure1 = figure('rend','painters','pos',[10 10 900 900]);       
-        hold on
-        %plot(x,y,'.','color','blue','MarkerSize',20)
-        %plot(xI,yI,'.','color','blue','MarkerSize',10)
-
+        figure1 = figure('rend','painters','pos',[10 10 1200 1200]);       
+        
         Ham = Ginv + eye(size(Ginv))*Energy;
 
         [V,D] = eig(Ham);
@@ -137,35 +132,54 @@ filename = mfilename('fullpath');
                 
         zero_waveFsq = V(:,zero_energies_logical).*conj(V(:,zero_energies_logical));
         
-        for j=1:nr_zero_energies
+        for j=1:nr_zero_energies               
             ax=subplot(ceil(sqrt(nr_zero_energies)),ceil(sqrt(nr_zero_energies)),j);
+            plot(x,y,'x','color','black','MarkerSize',15)
+            hold on
             scatter(x,y,zero_waveFsq(junction_sites.Scatter.site_indexes,j)*2000,'LineWidth',3,...
                 'MarkerEdgeColor',[0 .5 .5],...
                 'MarkerFaceColor',[0 .5 .5])%'.','color','red','MarkerSize',
             daspect([1 1 1]);
             xlim([min(x)-0.5,max(x)+0.5]);
             ylim([min(y)-0.5,max(y)+0.5]);
-            title(['WaveF at E = ',num2str(zero_energies(j))],'Interpreter','latex','FontSize',18);
-        end
-        
-        close(figure1);        
+            title(['E = ',num2str(zero_energies(j))],'Interpreter','latex','FontSize',12);
+        end    
 
         % exporting the calculated data
-        print('-dpng', fullfile(outputdir,[outfilename]) );
+        print('-dpng', fullfile(outputdir,[outfilename,'W',num2str(width),'H',num2str(height),'keep_site',num2str(keep_sites),]) );
         disp(' Plotting. ')
         disp( ' ' )
-                
+        close(figure1);  
+                 
     end
    function ret = ScatterPot( CreateH , Energy)
     
         coordinates = CreateH.Read('coordinates');
         x = coordinates.x;
-        y = coordinates.y; 
-        CreateH.Write('kulso_szabfokok',1:length(y));                 
-        ret=zeros(1,length(y));
+        
+        CreateH.Write('kulso_szabfokok',1:length(x));
+        
+        ret=zeros(1,length(x));
+   end
+   function ret = ScatterPot2( CreateH , Energy)
+    
+        coordinates = CreateH.Read('coordinates');
+        x = coordinates.x;
+        
+        CreateH.Write('kulso_szabfokok',[]);
+        
+        indexes_2_remove = x == max(x);
+
+        CreateH.RemoveSites(indexes_2_remove);
+        
+        coordinates = CreateH.Read('coordinates');
+        x = coordinates.x;
+        
+        CreateH.Write('kulso_szabfokok',1:length(x));
+        
+        ret=zeros(1,length(x));
         
    end
-
 %% setOutputDir
 %> @brief Sets output directory.
     function setOutputDir()
@@ -174,7 +188,6 @@ filename = mfilename('fullpath');
         outputdir = resultsdir;        
     end
 
-%{
     function lead_tmp=CustomLead(idx, E, varargin)
 
         p_inner = inputParser;
@@ -202,25 +215,20 @@ filename = mfilename('fullpath');
         SelfEnergy            = p_inner.Results.SelfEnergy;
         SurfaceGreensFunction = p_inner.Results.SurfaceGreensFunction;
         q                     = p_inner.Results.q;
-        
+
         % setting th ephysical values of the square lattice
         
         Opt_lead = Opt;
         param_lead = param;
                 
-        Opt_lead.Lattice_Type = 'Graphene';
+        Opt_lead.Lattice_Type = 'Graphene2';
         param_lead.Leads{idx} = param_Graphene_Lead();
 
-        [Opt_lead, param_lead] = ValidateStructures( Opt_lead, param_lead );
-            
-        param_lead.Leads{idx}.epsilon = param_lead.Leads{idx}.epsilon;
+        [Opt_lead, param_lead] = ValidateStructures( Opt_lead, param_lead );    
+        
+        param_lead.Leads{idx}.M=width;
         param_lead.Leads{idx}.End_Type='Z';        
-
-        if(idx==1)
-	        param_lead.Leads{idx}.M = 2;
-        else
-	        param_lead.Leads{idx}.M = 3;
-        end
+        
         param_lead.Leads{idx}.Lead_Orientation= -(-1)^idx;
         
         FL_handles = Transport_Interface(E, Opt_lead, param_lead);
@@ -235,7 +243,7 @@ filename = mfilename('fullpath');
                             'SurfaceGreensFunction', SurfaceGreensFunction, ...
                             'q', q);   
     end
-%}
+
 
  %% PlotFunction
 %> @brief Creates the plot
