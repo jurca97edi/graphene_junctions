@@ -161,25 +161,6 @@ filename = mfilename('fullpath');
         
         ret=zeros(1,length(x));
    end
-   function ret = ScatterPot2( CreateH , Energy)
-    
-        coordinates = CreateH.Read('coordinates');
-        x = coordinates.x;
-        
-        CreateH.Write('kulso_szabfokok',[]);
-        
-        indexes_2_remove = x == max(x);
-
-        CreateH.RemoveSites(indexes_2_remove);
-        
-        coordinates = CreateH.Read('coordinates');
-        x = coordinates.x;
-        
-        CreateH.Write('kulso_szabfokok',1:length(x));
-        
-        ret=zeros(1,length(x));
-        
-   end
 %% setOutputDir
 %> @brief Sets output directory.
     function setOutputDir()
@@ -243,78 +224,4 @@ filename = mfilename('fullpath');
                             'SurfaceGreensFunction', SurfaceGreensFunction, ...
                             'q', q);   
     end
-
-
- %% PlotFunction
-%> @brief Creates the plot
-    function PlotFunction( )
-        
-        % creating figure in units of pixels
-        figure1 = figure( 'Units', 'Pixels', 'Visible', 'off');
-        
-        % font size on the figure will be 16 points
-        fontsize = 16;
-          
-        
-        %Theoretical minimal conductivity
-        theoretical_limit = 2/pi; 
-        
-        if norm(x_lim) == 0
-            x_lim = [0 1];
-        end
-        
-        axes_cond = axes('Parent',figure1, ...
-                'Visible', 'on',...
-                'FontSize', fontsize,... 
-                'xlim', x_lim,...   
-                'Box', 'on',...
-                'Units', 'Pixels', ...
-                'FontName','Times New Roman');
-        hold on; 
-        
-        % plot the data
-        numerics = plot(aspectRatio(indexek), Conductivity(indexek), 'Linewidth', 2, 'color', [0 0 0], 'Parent', axes_cond);   
-        try
-            plot(aspectRatio(indexek), DeltaC(indexek), 'Linewidth', 1, 'color', [0 1 0], 'Parent', axes_cond);
-        catch
-            disp('No DeltaC data present')
-        end
-        plot( [0 max(aspectRatio(indexek))], ones(1,2)*theoretical_limit, 'r',  'Parent', axes_cond);
-        
-               
-         
-        
-         % Create xlabel
-         xlabel('W/L','FontSize', fontsize,'FontName','Times New Roman', 'Parent', axes_cond);
-
-         % Create ylabel
-         ylabel('\sigma/\sigma_0','FontSize', fontsize,'FontName','Times New Roman', 'Parent', axes_cond);
-        
-        
-         % set the legends
-         fig_legend = legend(axes_cond, {'conductivity', 'unitarity error'});%, 'FontSize', fontsize, 'FontName','Times New Roman')
-         set(fig_legend, 'FontSize', fontsize, 'FontName','Times New Roman', 'Box', 'off', 'Location', 'NorthEast')
-         
-         % setting the position and margins of the plot, removing white
-         % spaces for release dates greater than 2015
-         ver = version('-release');
-         if str2num(ver(1:4)) >= 2016
-            figure1.PaperPositionMode = 'auto';
-            fig_pos = figure1.PaperPosition;
-            figure1.PaperSize = [fig_pos(3) fig_pos(4)]; 
-        
-            set(axes_cond, 'Position', get(axes_cond, 'OuterPosition') - get(axes_cond, 'TightInset') * [-1 0 1 0; 0 -1 0 1; 0 0 1 0; 0 0 0 1]);        
-            Position_figure = get(axes_cond, 'OuterPosition');
-            set(figure1, 'Position', Position_figure);
-         end
-
-        
-         % export the figures
-         print('-depsc2', fullfile(outputdir,[outfilename, '.eps']))
-         print('-dpdf', fullfile(outputdir,[outfilename, '.pdf']))
-         close(figure1)
-        
-        
-    end
-end
    
